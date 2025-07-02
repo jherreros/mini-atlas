@@ -1,0 +1,7 @@
+
+apiVersion: kro.run/v1alpha1
+kind: Workspace
+metadata:
+  name: team-a
+spec:
+  name: team-a

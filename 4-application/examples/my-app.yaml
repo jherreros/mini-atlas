@@ -1,0 +1,12 @@
+apiVersion: kro.run/v1alpha1
+kind: MyApp
+metadata:
+  name: team-a-instance
+  namespace: team-a
+spec:
+  name: team-a-instance
+  namespace: team-a
+  image: nginx
+  tag: latest
+  replicas: 2
+  host: my-app.example.com
