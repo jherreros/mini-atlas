@@ -1,5 +1,5 @@
 apiVersion: kro.run/v1alpha1
-kind: MyApp
+kind: WebApplication
 metadata:
   name: team-a-instance
   namespace: team-a

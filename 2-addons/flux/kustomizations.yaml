@@ -45,11 +45,26 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: resource-graph-definitions
+  name: shared-resources
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./2-addons/manifests/ResourceGraphDefinitions
+  path: ./2-addons/manifests/shared-resources
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: helm-releases
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: abstractions
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./2-addons/manifests/abstractions
   prune: true
   sourceRef:
     kind: GitRepository

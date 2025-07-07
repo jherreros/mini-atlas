@@ -1,0 +1,79 @@
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: infrastructure
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: Infrastructure
+    spec:
+      name: string
+      namespace: string
+      database: string
+  resources:
+    - id: cluster
+      template:
+        apiVersion: postgresql.cnpg.io/v1
+        kind: Cluster
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.namespace}
+        spec:
+          instances: 2
+          bootstrap:
+            initdb:
+              database: app
+              owner: app
+              secret:
+                name: app-secret
+              postInitSQL:
+                - CREATE DATABASE IF NOT EXISTS ${schema.spec.database};
+                - GRANT ALL PRIVILEGES ON DATABASE ${schema.spec.database} TO app;
+          storage:
+            size: 1Gi
+    - id: appSecret
+      template:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: app-secret
+          namespace: ${schema.spec.namespace}
+        type: Opaque
+        data:
+          username: YXBw  # base64 encoded 'app'
+          password: cGFzc3dvcmQ=  # base64 encoded 'password'
+    - id: redisDeployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.name}-redis
+          namespace: ${schema.spec.namespace}
+        spec:
+          selector:
+            matchLabels:
+              app: redis
+          template:
+            metadata:
+              labels:
+                app: redis
+            spec:
+              containers:
+              - name: redis
+                image: redis:7-alpine
+                ports:
+                - containerPort: 6379
+    - id: redisService
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}-redis
+          namespace: ${schema.spec.namespace}
+        spec:
+          selector:
+            app: redis
+          ports:
+          - port: 6379
+            targetPort: 6379
+

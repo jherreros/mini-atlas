@@ -4,3 +4,6 @@ resources:
   - ingress-nginx-namespace.yaml
   - kro-namespace.yaml
   - kyverno-namespace.yaml
+  - strimzi-namespace.yaml
+  - cnpg-namespace.yaml
+  - kafka-namespace.yaml

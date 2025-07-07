@@ -1,0 +1,9 @@
+apiVersion: kro.run/v1alpha1
+kind: Infrastructure
+metadata:
+  name: team-a-db
+  namespace: team-a
+spec:
+  name: team-a-db
+  namespace: team-a
+  database: team-a-01
