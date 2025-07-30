@@ -170,7 +170,7 @@ mini-atlas/
 │       ├── helm-repositories/ # Helm repository configs
 │       ├── namespaces/        # Namespace definitions
 │       └── shared-resources/  # Multi-tenant resources
-└── user-space/                # Developer workspace
+└── 3-user-space/              # Developer workspace
     └── team-a/                # Example team workspace
         ├── workspace.yaml     # Workspace definition
         ├── webapp.yaml        # Web application
