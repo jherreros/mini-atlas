@@ -1,0 +1,150 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: workspace-composition
+  labels:
+    crossplane.io/xrd: workspaces.mini-atlas.io
+spec:
+  compositeTypeRef:
+    apiVersion: mini-atlas.io/v1alpha1
+    kind: Workspace
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: namespace
+            base:
+              apiVersion: v1
+              kind: Namespace
+              metadata: {}
+            readinessChecks:
+              - type: MatchString
+                fieldPath: status.phase
+                matchString: Active
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+          - name: cilium-policy
+            base:
+              apiVersion: cilium.io/v2
+              kind: CiliumNetworkPolicy
+              metadata:
+                name: default-deny
+              spec:
+                endpointSelector: {}
+                ingress:
+                  - fromEntities:
+                      - host
+                  - fromEndpoints:
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: kube-system
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: cnpg-system
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: placeholder
+                egress:
+                  - toEndpoints:
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: kube-system
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: cnpg-system
+                      - matchLabels:
+                          k8s:io.kubernetes.pod.namespace: placeholder
+                  - toEntities:
+                      - host
+                      - remote-node
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Valid
+                  status: "True"
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.namespace
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.ingress[1].fromEndpoints[2].matchLabels['k8s:io.kubernetes.pod.namespace']
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.egress[0].toEndpoints[2].matchLabels['k8s:io.kubernetes.pod.namespace']
+          - name: kyverno-policy
+            base:
+              apiVersion: kyverno.io/v1
+              kind: ClusterPolicy
+              metadata:
+                annotations:
+                  policies.kyverno.io/title: Enforce Naming Convention
+                  policies.kyverno.io/category: Best Practices
+                  policies.kyverno.io/severity: medium
+                  policies.kyverno.io/subject: Pod, Deployment, ReplicaSet
+                  policies.kyverno.io/description: >-
+                    This policy ensures that all pods and workloads created in workspace are prefixed with the workspace name.
+              spec:
+                validationFailureAction: enforce
+                background: true
+                rules:
+                  - name: validate-pod-name
+                    match:
+                      any:
+                        - resources:
+                            kinds:
+                              - Pod
+                        - resources:
+                            kinds:
+                              - Deployment
+                              - ReplicaSet
+                              - DaemonSet
+                              - StatefulSet
+                    validate:
+                      message: "Resource names must be prefixed with the workspace name."
+                      deny:
+                        conditions:
+                          all:
+                            - key: "{{ request.object.metadata.name || request.object.spec.template.metadata.name || '' }}"
+                              operator: NotEquals
+                              value: ""
+                            - key: "{{ request.object.metadata.name || request.object.spec.template.metadata.name || '' }}"
+                              operator: AnyNotIn
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "enforce-naming-convention-%s"
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.annotations["policies.kyverno.io/description"]
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "This policy ensures that all pods and workloads created in workspace %s are prefixed with the workspace name."
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "validate-pod-name-%s"
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].match.any[0].resources.namespaces[0]
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].match.any[1].resources.namespaces[0]
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].validate.message
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "Resource names must be prefixed with the workspace name '%s-'."
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].validate.deny.conditions.all[1].value
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-*"

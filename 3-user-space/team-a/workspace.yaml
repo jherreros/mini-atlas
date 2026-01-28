@@ -1,6 +1,5 @@
-apiVersion: kro.run/v1alpha1
+apiVersion: mini-atlas.io/v1alpha1
 kind: Workspace
 metadata:
   name: team-a
-spec:
-  name: team-a
+spec: {}

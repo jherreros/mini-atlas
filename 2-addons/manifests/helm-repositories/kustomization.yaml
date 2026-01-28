@@ -4,6 +4,6 @@ resources:
   - cilium.yaml
   - ingress-nginx.yaml
   - kyverno.yaml
-  - kro.yaml
   - strimzi.yaml
   - cnpg.yaml
+  - crossplane.yaml

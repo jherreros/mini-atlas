@@ -60,11 +60,11 @@ spec:
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: abstractions
+  name: crossplane
   namespace: flux-system
 spec:
   interval: 10m
-  path: ./2-addons/manifests/abstractions
+  path: ./2-addons/manifests/crossplane
   prune: true
   sourceRef:
     kind: GitRepository

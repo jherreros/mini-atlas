@@ -1,0 +1,39 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane:composed-resources
+  labels:
+    rbac.crossplane.io/aggregate-to-crossplane: "true"
+rules:
+  # Namespaces
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Cilium Network Policies
+  - apiGroups: ["cilium.io"]
+    resources: ["ciliumnetworkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Kyverno Cluster Policies
+  - apiGroups: ["kyverno.io"]
+    resources: ["clusterpolicies", "clusterpolicies/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Kafka Topics
+  - apiGroups: ["kafka.strimzi.io"]
+    resources: ["kafkatopics", "kafkas", "kafkanodepools"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # CloudNativePG
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Core resources for compositions
+  - apiGroups: [""]
+    resources: ["secrets", "services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Apps resources
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Networking
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

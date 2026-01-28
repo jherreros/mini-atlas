@@ -1,0 +1,132 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: kafka-instance-composition
+  labels:
+    crossplane.io/xrd: kafkainstances.mini-atlas.io
+spec:
+  compositeTypeRef:
+    apiVersion: mini-atlas.io/v1alpha1
+    kind: KafkaInstance
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: kafka-node-pool
+            base:
+              apiVersion: kafka.strimzi.io/v1beta2
+              kind: KafkaNodePool
+              spec:
+                replicas: 3
+                roles:
+                  - controller
+                  - broker
+                storage:
+                  type: jbod
+                  volumes:
+                    - id: 0
+                      type: persistent-claim
+                      size: 1Gi
+                      deleteClaim: false
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-pool"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.labels[strimzi.io/cluster]
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-cluster"
+            readinessChecks:
+              - type: None
+          - name: kafka-cluster
+            base:
+              apiVersion: kafka.strimzi.io/v1beta2
+              kind: Kafka
+              metadata:
+                annotations:
+                  strimzi.io/node-pools: enabled
+                  strimzi.io/kraft: enabled
+              spec:
+                kafka:
+                  version: 3.9.0
+                  listeners:
+                    - name: plain
+                      port: 9092
+                      type: internal
+                      tls: false
+                    - name: tls
+                      port: 9093
+                      type: internal
+                      tls: true
+                  config:
+                    offsets.topic.replication.factor: 3
+                    transaction.state.log.replication.factor: 3
+                    transaction.state.log.min.isr: 2
+                    default.replication.factor: 3
+                    min.insync.replicas: 2
+                entityOperator:
+                  topicOperator: {}
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-cluster"
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+
+    - step: go-templating
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            {{ range .observed.composite.resource.spec.topics }}
+            ---
+            apiVersion: kafka.strimzi.io/v1beta2
+            kind: KafkaTopic
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ printf "kafka-topic-%s" .name | quote }}
+              name: {{ printf "%s-%s" $.observed.composite.resource.metadata.name .name | quote }}
+              namespace: {{ $.observed.composite.resource.metadata.namespace | quote }}
+              labels:
+                strimzi.io/cluster: {{ printf "%s-cluster" $.observed.composite.resource.metadata.name | quote }}
+            spec:
+              partitions: {{ .partitions | default 3 }}
+              replicas: {{ .replicas | default 3 }}
+              {{ if .config }}
+              config:
+                {{ range $k, $v := .config }}
+                {{ $k }}: {{ $v | quote }}
+                {{ end }}
+              {{ end }}
+            {{ end }}
+
+    - step: auto-ready
+      functionRef:
+        name: function-auto-ready

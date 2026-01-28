@@ -9,7 +9,7 @@ Mini-Atlas allows developers to declaratively provision and manage:
 - **Workspaces** - Isolated tenant environments with network policies and naming conventions
 - **Web Applications** - Containerized applications with deployments, services, and ingress
 - **Infrastructure** - PostgreSQL databases, Redis caches, and other backing services
-- **Messaging** - Kafka topics on a shared message bus
+- **Messaging** - Full Kafka clusters and multiple topics
 
 ## Architecture
 
@@ -23,14 +23,14 @@ Installs platform components using **FluxCD** for GitOps-based deployment:
 
 - **Helm Repositories & Releases** - Core platform software
 - **Shared Resources** - Multi-tenant infrastructure (Kafka cluster)
-- **Abstractions** - Custom resource definitions using **KRO** (Kubernetes Resource Orchestrator)
+- **Abstractions** - Custom resource definitions using **Crossplane** for composable infrastructure
 
 ### 3. User Space (`user-space/`)
 Developer-facing resources where teams can provision their applications and infrastructure using high-level abstractions.
 
 ## Key Technologies
 
-- **[KRO](https://kro.run)** - Kubernetes Resource Orchestrator for creating custom abstractions
+- **[Crossplane](https://crossplane.io)** - Composable infrastructure for creating custom abstractions
 - **FluxCD** - GitOps continuous delivery for Kubernetes
 - **Cilium** - Cloud-native networking and security
 - **Strimzi** - Kubernetes-native Apache Kafka
@@ -85,12 +85,11 @@ kubectl get pods -A
 Workspaces provide isolated environments for teams:
 
 ```yaml
-apiVersion: kro.run/v1alpha1
+apiVersion: mini-atlas.io/v1alpha1
 kind: Workspace
 metadata:
   name: team-a
-spec:
-  name: team-a
+spec: {}
 ```
 
 This creates:
@@ -101,14 +100,12 @@ This creates:
 ### Deploying a Web Application
 
 ```yaml
-apiVersion: kro.run/v1alpha1
+apiVersion: mini-atlas.io/v1alpha1
 kind: WebApplication
 metadata:
   name: my-app
   namespace: team-a
 spec:
-  name: my-app
-  namespace: team-a
   image: nginx
   tag: latest
   replicas: 2
@@ -123,14 +120,12 @@ This provisions:
 ### Provisioning Infrastructure
 
 ```yaml
-apiVersion: kro.run/v1alpha1
+apiVersion: mini-atlas.io/v1alpha1
 kind: Infrastructure
 metadata:
   name: team-a-db
   namespace: team-a
 spec:
-  name: team-a-db
-  namespace: team-a
   database: team-a-01
 ```
 
@@ -139,20 +134,24 @@ This creates:
 - Redis deployment and service
 - Database credentials as Kubernetes secrets
 
-### Creating Kafka Topics
+### Provisioning Kafka Instances
 
 ```yaml
-apiVersion: kro.run/v1alpha1
-kind: Topic
+apiVersion: mini-atlas.io/v1alpha1
+kind: KafkaInstance
 metadata:
-  name: team-a-events
+  name: team-a-01
   namespace: team-a
 spec:
-  name: team-a-events
-  namespace: team-a
+  topics:
+    - name: logs
+    - name: events
+      partitions: 5
+      config:
+        retention.ms: "604800000"
 ```
 
-This provisions a Kafka topic on the shared cluster with appropriate partitioning and retention policies.
+This provisions a dedicated Kafka cluster and multiple topics with appropriate partitioning and retention policies.
 
 ## Project Structure
 
@@ -165,7 +164,7 @@ mini-atlas/
 │   ├── flux/                  # FluxCD bootstrap config
 │   ├── install-addons.sh      # Addon installation script
 │   └── manifests/             # Kubernetes manifests
-│       ├── abstractions/      # KRO resource definitions
+│       ├── crossplane/        # Crossplane XRDs and Compositions
 │       ├── helm-releases/     # Helm chart deployments
 │       ├── helm-repositories/ # Helm repository configs
 │       ├── namespaces/        # Namespace definitions
@@ -175,7 +174,7 @@ mini-atlas/
         ├── workspace.yaml     # Workspace definition
         ├── webapp.yaml        # Web application
         ├── infra.yaml         # Infrastructure resources
-        └── topic.yaml         # Messaging topic
+        └── kafka-instance.yaml # Messaging topic
 ```
 
 ## Available Abstractions
@@ -183,29 +182,29 @@ mini-atlas/
 ### Workspace
 - **Purpose**: Isolated tenant environment
 - **Creates**: Namespace, network policies, naming conventions
-- **Schema**: `name: string`
+- **Schema**: No required fields
 
 ### WebApplication
 - **Purpose**: Containerized web application
 - **Creates**: Deployment, Service, Ingress
-- **Schema**: `name`, `namespace`, `image`, `tag`, `replicas`, `host`
+- **Schema**: `image`, `tag`, `replicas`, `host`
 
 ### Infrastructure
 - **Purpose**: Database and caching services
 - **Creates**: PostgreSQL cluster, Redis deployment, secrets
-- **Schema**: `name`, `namespace`, `database`
+- **Schema**: `database`
 
-### Topic
-- **Purpose**: Kafka messaging topic
-- **Creates**: KafkaTopic with partitioning and retention
-- **Schema**: `name`, `namespace`
+### KafkaInstance
+- **Purpose**: Kafka cluster and messaging topics
+- **Creates**: Kafka cluster, NodePool, and multiple KafkaTopics
+- **Schema**: `topics` array with `name`, `partitions`, `replicas`, and `config`
 
 ## Differences from Production Atlas
 
 | Feature | Mini-Atlas | Production Atlas |
 |---------|------------|------------------|
 | Cluster | Kind (local) | AKS (Terraform) |
-| Abstractions | KRO | Complex custom operators |
+| Abstractions | Crossplane | Complex custom operators |
 | Scale | Single cluster | Multi-cluster |
 | Networking | Cilium (basic) | Advanced mesh networking |
 | Security | Basic policies | Enterprise security controls |

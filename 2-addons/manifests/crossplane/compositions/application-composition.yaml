@@ -1,0 +1,101 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: application-composition
+  labels:
+    crossplane.io/xrd: webapplications.mini-atlas.io
+spec:
+  compositeTypeRef:
+    apiVersion: mini-atlas.io/v1alpha1
+    kind: WebApplication
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: deployment
+            base:
+              apiVersion: apps/v1
+              kind: Deployment
+              spec:
+                selector:
+                  matchLabels: {}
+                template:
+                  metadata:
+                    labels: {}
+                  spec:
+                    containers:
+                    - name: app
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.selector.matchLabels.app
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.template.metadata.labels.app
+              - type: CombineFromComposite
+                combine:
+                  variables:
+                    - fromFieldPath: spec.image
+                    - fromFieldPath: spec.tag
+                  strategy: string
+                  string:
+                    fmt: "%s:%s"
+                toFieldPath: spec.template.spec.containers[0].image
+              - fromFieldPath: spec.replicas
+                toFieldPath: spec.replicas
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Available
+                  status: "True"
+          - name: service
+            base:
+              apiVersion: v1
+              kind: Service
+              spec:
+                selector: {}
+                ports:
+                - port: 80
+                  targetPort: 80
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.selector.app
+            readinessChecks:
+              - type: None
+          - name: ingress
+            base:
+              apiVersion: networking.k8s.io/v1
+              kind: Ingress
+              spec:
+                rules:
+                - http:
+                    paths:
+                    - path: /
+                      pathType: Prefix
+                      backend:
+                        service:
+                          name: placeholder
+                          port:
+                            number: 80
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+              - fromFieldPath: spec.host
+                toFieldPath: spec.rules[0].host
+              - fromFieldPath: metadata.name
+                toFieldPath: spec.rules[0].http.paths[0].backend.service.name
+            readinessChecks:
+              - type: None

@@ -1,0 +1,134 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: infrastructure-composition
+  labels:
+    crossplane.io/xrd: infrastructures.mini-atlas.io
+spec:
+  compositeTypeRef:
+    apiVersion: mini-atlas.io/v1alpha1
+    kind: Infrastructure
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: postgres-cluster
+            base:
+              apiVersion: postgresql.cnpg.io/v1
+              kind: Cluster
+              spec:
+                instances: 2
+                bootstrap:
+                  initdb:
+                    database: app
+                    owner: app
+                    secret:
+                      name: app-secret
+                    postInitSQL: []
+                storage:
+                  size: 1Gi
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+              - fromFieldPath: spec.database
+                toFieldPath: spec.bootstrap.initdb.postInitSQL[0]
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: 'CREATE DATABASE "%s";'
+              - fromFieldPath: spec.database
+                toFieldPath: spec.bootstrap.initdb.postInitSQL[1]
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: 'GRANT ALL PRIVILEGES ON DATABASE "%s" TO app;'
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Ready
+                  status: "True"
+          - name: app-secret
+            base:
+              apiVersion: v1
+              kind: Secret
+              type: Opaque
+              metadata:
+                name: app-secret
+              data:
+                username: YXBw
+                password: cGFzc3dvcmQ=
+            patches:
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+            readinessChecks:
+              - type: None
+          - name: redis-deployment
+            base:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                labels:
+                  app: redis
+              spec:
+                selector:
+                  matchLabels:
+                    app: redis
+                template:
+                  metadata:
+                    labels:
+                      app: redis
+                  spec:
+                    containers:
+                      - name: redis
+                        image: redis:7-alpine
+                        ports:
+                          - containerPort: 6379
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-redis"
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+            readinessChecks:
+              - type: MatchCondition
+                matchCondition:
+                  type: Available
+                  status: "True"
+          - name: redis-service
+            base:
+              apiVersion: v1
+              kind: Service
+              metadata:
+                labels:
+                  app: redis
+              spec:
+                selector:
+                  app: redis
+                ports:
+                  - port: 6379
+                    targetPort: 6379
+            patches:
+              - fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+                transforms:
+                  - type: string
+                    string:
+                      type: Format
+                      fmt: "%s-redis"
+              - fromFieldPath: metadata.namespace
+                toFieldPath: metadata.namespace
+            readinessChecks:
+              - type: None

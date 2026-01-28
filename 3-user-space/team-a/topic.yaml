@@ -1,8 +1,0 @@
-apiVersion: kro.run/v1alpha1
-kind: Topic
-metadata:
-  name: team-a-01
-  namespace: team-a
-spec:
-  name: team-a-01
-  namespace: team-a

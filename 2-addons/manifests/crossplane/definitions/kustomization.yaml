@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - workspace-xrd.yaml
+  - application-xrd.yaml
+  - infrastructure-xrd.yaml
+  - kafka-instance-xrd.yaml
