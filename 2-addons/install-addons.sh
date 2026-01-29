@@ -31,6 +31,7 @@ fi
 if ! flux get kustomization flux-system &> /dev/null
 then
     echo "Installing FluxCD..."
+    cd "$(dirname "$0")"
     flux install
     kubectl apply -f flux/
 else

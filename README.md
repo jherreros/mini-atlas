@@ -49,15 +49,13 @@ Developer-facing resources where teams can provision their applications and infr
 ### 1. Create the Cluster
 
 ```bash
-cd 1-infrastructure
-./create-cluster.sh
+./1-infrastructure/create-cluster.sh
 ```
 
 ### 2. Install Platform Addons
 
 ```bash
-cd ../2-addons
-./install-addons.sh
+./2-addons/install-addons.sh
 ```
 
 This will:
