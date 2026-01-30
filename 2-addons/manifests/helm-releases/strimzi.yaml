@@ -12,6 +12,6 @@ spec:
         kind: HelmRepository
         name: strimzi
         namespace: flux-system
-      version: "0.46.1"
+      version: "0.50.0"
   values:
     watchAnyNamespace: true

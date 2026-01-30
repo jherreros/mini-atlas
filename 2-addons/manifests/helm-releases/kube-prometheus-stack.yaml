@@ -1,0 +1,43 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: observability
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+  values:
+    grafana:
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          url: http://loki.observability:3100
+          access: proxy
+          jsonData:
+            derivedFields:
+              - datasourceUid: tempo
+                matcherRegex: "traceID=(\\w+)"
+                name: TraceID
+                url: "$${__value.raw}"
+        - name: Tempo
+          type: tempo
+          url: http://tempo.observability:3100
+          access: proxy
+          jsonData:
+            tracesToLogsV2:
+              datasourceUid: "Loki"
+              tags: ["job", "instance", "pod", "namespace"]
+            tracesToMetrics:
+              datasourceUid: "Prometheus"
+              tags: [{ key: "service.name", value: "service" }, { key: "job" }]
+    prometheus:
+      prometheusSpec:
+        serviceMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelector: {}
+        serviceMonitorNamespaceSelector: {}

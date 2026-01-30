@@ -1,0 +1,33 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tempo
+  namespace: observability
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: tempo
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+  values:
+    tempo:
+      repository: grafana/tempo
+      tag: 2.3.1
+      storage:
+        trace:
+          backend: local
+          local:
+            path: /var/tempo/traces
+          wal:
+            path: /var/tempo/wal
+    persistence:
+      enabled: false
+    volumes:
+      - name: tempo-data
+        emptyDir: {}
+    volumeMounts:
+      - name: tempo-data
+        mountPath: /var/tempo

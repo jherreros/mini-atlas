@@ -8,3 +8,7 @@ resources:
   - strimzi.yaml
   - cnpg.yaml
   - crossplane.yaml
+  - loki.yaml
+  - tempo.yaml
+  - kube-prometheus-stack.yaml
+  - alloy.yaml
