@@ -29,7 +29,7 @@ spec:
                     labels: {}
                   spec:
                     containers:
-                    - name: app
+                      - name: app
             patches:
               - fromFieldPath: metadata.name
                 toFieldPath: metadata.name
@@ -62,8 +62,8 @@ spec:
               spec:
                 selector: {}
                 ports:
-                - port: 80
-                  targetPort: 80
+                  - port: 80
+                    targetPort: 80
             patches:
               - fromFieldPath: metadata.name
                 toFieldPath: metadata.name
@@ -73,29 +73,27 @@ spec:
                 toFieldPath: spec.selector.app
             readinessChecks:
               - type: None
-          - name: ingress
+          - name: httproute
             base:
-              apiVersion: networking.k8s.io/v1
-              kind: Ingress
+              apiVersion: gateway.networking.k8s.io/v1
+              kind: HTTPRoute
               spec:
+                parentRefs:
+                  - name: cilium-gateway
+                    namespace: kube-system
+                hostnames: []
                 rules:
-                - http:
-                    paths:
-                    - path: /
-                      pathType: Prefix
-                      backend:
-                        service:
-                          name: placeholder
-                          port:
-                            number: 80
+                  - backendRefs:
+                      - name: placeholder
+                        port: 80
             patches:
               - fromFieldPath: metadata.name
                 toFieldPath: metadata.name
               - fromFieldPath: metadata.namespace
                 toFieldPath: metadata.namespace
               - fromFieldPath: spec.host
-                toFieldPath: spec.rules[0].host
+                toFieldPath: spec.hostnames[0]
               - fromFieldPath: metadata.name
-                toFieldPath: spec.rules[0].http.paths[0].backend.service.name
+                toFieldPath: spec.rules[0].backendRefs[0].name
             readinessChecks:
               - type: None

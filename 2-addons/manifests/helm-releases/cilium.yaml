@@ -12,10 +12,12 @@ spec:
         kind: HelmRepository
         name: cilium
         namespace: flux-system
-      version: '1.18.6'
+      version: "1.18.6"
   values:
     kubeProxyReplacement: true
     image:
       pullPolicy: IfNotPresent
     ipam:
       mode: kubernetes
+    gatewayAPI:
+      enabled: true

@@ -33,7 +33,7 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # Networking
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
+  # Gateway API
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes", "httproutes/status", "grpcroutes", "grpcroutes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
