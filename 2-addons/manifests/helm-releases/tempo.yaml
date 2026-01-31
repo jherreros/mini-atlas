@@ -24,7 +24,10 @@ spec:
           wal:
             path: /var/tempo/wal
     persistence:
-      enabled: false
+      enabled: true
+      size: 1Gi
+    securityContext:
+      fsGroup: 10001
     volumes:
       - name: tempo-data
         emptyDir: {}
