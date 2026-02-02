@@ -1,13 +1,13 @@
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
-  name: kafka-instance-composition
+  name: event-stream-composition
   labels:
-    crossplane.io/xrd: kafkainstances.mini-atlas.io
+    crossplane.io/xrd: eventstreams.shoulders.io
 spec:
   compositeTypeRef:
-    apiVersion: mini-atlas.io/v1alpha1
-    kind: KafkaInstance
+    apiVersion: shoulders.io/v1alpha1
+    kind: EventStream
   mode: Pipeline
   pipeline:
     - step: patch-and-transform

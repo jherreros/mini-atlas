@@ -1,7 +1,0 @@
-apiVersion: mini-atlas.io/v1alpha1
-kind: Infrastructure
-metadata:
-  name: team-a-db
-  namespace: team-a
-spec:
-  database: team-a-01

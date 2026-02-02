@@ -1,12 +1,12 @@
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: kafkainstances.mini-atlas.io
+  name: eventstreams.shoulders.io
 spec:
-  group: mini-atlas.io
+  group: shoulders.io
   names:
-    kind: KafkaInstance
-    plural: kafkainstances
+    kind: EventStream
+    plural: eventstreams
   scope: Namespaced
   versions:
     - name: v1alpha1

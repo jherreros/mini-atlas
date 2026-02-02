@@ -1,0 +1,13 @@
+apiVersion: shoulders.io/v1alpha1
+kind: StateStore
+metadata:
+  name: team-a-db
+  namespace: team-a
+spec:
+  postgresql:
+    databases:
+      - team-a-01
+      - team-a-02
+  redis:
+    enabled: true
+    replicas: 1

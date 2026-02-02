@@ -3,10 +3,10 @@ kind: Composition
 metadata:
   name: workspace-composition
   labels:
-    crossplane.io/xrd: workspaces.mini-atlas.io
+    crossplane.io/xrd: workspaces.shoulders.io
 spec:
   compositeTypeRef:
-    apiVersion: mini-atlas.io/v1alpha1
+    apiVersion: shoulders.io/v1alpha1
     kind: Workspace
   mode: Pipeline
   pipeline:

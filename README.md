@@ -1,41 +1,64 @@
-# Mini-Atlas
+# Shoulders
 
-A scaled-down version of Atlas, the Internal Developer Platform used at Banking Circle. Mini-Atlas provides developers with a self-service platform to create and manage their cloud-native applications and infrastructure on Kubernetes.
+Shoulders is a reference implementation of an Internal Developer Platform (IDP) that demonstrates how to use Crossplane to provide a self-service platform for developers to create and manage their cloud-native applications and infrastructure on Kubernetes.
 
-## What is Mini-Atlas?
+The name originates from the quote _"If I have seen further it is by standing on the shoulders of Giants"_ by Isaac Newton. 
+The Shoulders platform is composed by a set of open source tools that work together to provide a platform that can be used to build and deploy applications on Kubernetes. Those applications will, then, run on the shoulders of the maintainers and contributors of all those open source tools.
 
-Mini-Atlas allows developers to declaratively provision and manage:
+## What is Shoulders?
 
-- **Workspaces** - Isolated tenant environments with network policies and naming conventions
-- **Web Applications** - Containerized applications with deployments, services, and ingress
-- **Infrastructure** - PostgreSQL databases, Redis caches, and other backing services
-- **Messaging** - Full Kafka clusters and multiple topics
+Shoulders allows developers to declaratively provision and manage:
+
+- **Workspaces** - Isolated tenant environments with network policies and naming conventions.
+- **Web Applications** - Containerized applications with deployments, services, and Cilium-powered Ingress.
+- **State Stores** - PostgreSQL databases (via CloudNativePG) and Redis caches.
+- **Event Streams** - Full Kafka clusters and multiple topics (via Strimzi).
+- **Observability** - Built-in LGTM stack (Loki, Grafana, Tempo, Mimir/Prometheus) for comprehensive monitoring.
 
 ## Architecture
 
-Mini-Atlas follows a multi-layered approach:
+Shoulders follows a multi-layered approach:
 
-### 1. Infrastructure Layer (`1-infrastructure/`)
-Creates the foundational Kubernetes cluster using **kind** (Kubernetes in Docker) for local development. In production Atlas, this layer uses Terraform to provision AKS clusters.
+### 1. Cluster Layer (`1-cluster/`)
+Creates the foundational Kubernetes cluster using **kind** (Kubernetes in Docker) for local development. 
 
 ### 2. Addons Layer (`2-addons/`)
 Installs platform components using **FluxCD** for GitOps-based deployment:
 
-- **Helm Repositories & Releases** - Core platform software
-- **Shared Resources** - Multi-tenant infrastructure (Kafka cluster)
-- **Abstractions** - Custom resource definitions using **Crossplane** for composable infrastructure
+- **Helm Repositories & Releases** - Core platform software.
+- **Abstractions** - Custom resource definitions using **Crossplane** for composable infrastructure.
 
-### 3. User Space (`user-space/`)
+### 3. User Space (`3-user-space/`)
 Developer-facing resources where teams can provision their applications and infrastructure using high-level abstractions.
 
 ## Key Technologies
 
-- **[Crossplane](https://crossplane.io)** - Composable infrastructure for creating custom abstractions
-- **FluxCD** - GitOps continuous delivery for Kubernetes
-- **Cilium** - Cloud-native networking and security
-- **Strimzi** - Kubernetes-native Apache Kafka
-- **CloudNativePG** - PostgreSQL operator for Kubernetes
-- **Kyverno** - Policy-as-code for Kubernetes security and governance
+- **[Crossplane](https://crossplane.io)** - Composable infrastructure for creating custom abstractions.
+- **[FluxCD](https://fluxcd.io)** - GitOps continuous delivery for Kubernetes.
+- **[Cilium](https://cilium.io)** - Cloud-native networking, security, and Gateway API implementation.
+- **[Strimzi](https://strimzi.io)** - Kubernetes-native Apache Kafka operator.
+- **[CloudNativePG](https://cloudnative-pg.io)** - PostgreSQL operator for Kubernetes.
+- **[Kyverno](https://kyverno.io)** - Policy-as-code for Kubernetes security and governance.
+
+## Observability
+
+Shoulders comes with a pre-configured observability stack to help developers monitor their applications and infrastructure.
+
+- **[Loki](https://grafana.com/oss/loki/)** - High-availability log aggregation system.
+- **[Grafana](https://grafana.com/oss/grafana/)** - The open observability platform for visualization and dashboards.
+- **[Tempo](https://grafana.com/oss/tempo/)** - Easy-to-use, high-scale distributed tracing backend.
+- **[Prometheus](https://prometheus.io)** - Systems monitoring and alerting toolkit.
+- **[Grafana Alloy](https://grafana.com/oss/alloy/)** - Our preferred collector for logs, metrics, and traces.
+
+### Accessing Grafana
+
+You can access the Grafana dashboard to view logs, metrics, and traces by port-forwarding to the Grafana service:
+
+```bash
+kubectl port-forward svc/kube-prometheus-stack-grafana -n observability 3000:80
+```
+
+Then, open [http://localhost:3000](http://localhost:3000) in your browser. The default credentials are `admin` / `prom-operator`.
 
 ## Quick Start
 
@@ -49,7 +72,7 @@ Developer-facing resources where teams can provision their applications and infr
 ### 1. Create the Cluster
 
 ```bash
-./1-infrastructure/create-cluster.sh
+./1-cluster/create-cluster.sh
 ```
 
 ### 2. Install Platform Addons
@@ -59,9 +82,9 @@ Developer-facing resources where teams can provision their applications and infr
 ```
 
 This will:
-- Install Cilium CNI with kube-proxy replacement
-- Bootstrap FluxCD
-- Deploy all platform components via GitOps
+- Install Cilium CNI with kube-proxy replacement.
+- Bootstrap FluxCD.
+- Deploy all platform components via GitOps.
 
 ### 3. Verify Installation
 
@@ -76,14 +99,14 @@ flux get kustomizations
 kubectl get pods -A
 ```
 
-## Using Mini-Atlas
+## Using Shoulders
 
 ### Creating a Workspace
 
 Workspaces provide isolated environments for teams:
 
 ```yaml
-apiVersion: mini-atlas.io/v1alpha1
+apiVersion: shoulders.io/v1alpha1
 kind: Workspace
 metadata:
   name: team-a
@@ -98,7 +121,7 @@ This creates:
 ### Deploying a Web Application
 
 ```yaml
-apiVersion: mini-atlas.io/v1alpha1
+apiVersion: shoulders.io/v1alpha1
 kind: WebApplication
 metadata:
   name: my-app
@@ -115,11 +138,11 @@ This provisions:
 - Service for internal communication
 - Ingress for external access
 
-### Provisioning Infrastructure
+### Provisioning State Stores
 
 ```yaml
-apiVersion: mini-atlas.io/v1alpha1
-kind: Infrastructure
+apiVersion: shoulders.io/v1alpha1
+kind: StateStore
 metadata:
   name: team-a-db
   namespace: team-a
@@ -132,11 +155,11 @@ This creates:
 - Redis deployment and service
 - Database credentials as Kubernetes secrets
 
-### Provisioning Kafka Instances
+### Provisioning Event Streams
 
 ```yaml
-apiVersion: mini-atlas.io/v1alpha1
-kind: KafkaInstance
+apiVersion: shoulders.io/v1alpha1
+kind: EventStream
 metadata:
   name: team-a-01
   namespace: team-a
@@ -154,8 +177,8 @@ This provisions a dedicated Kafka cluster and multiple topics with appropriate p
 ## Project Structure
 
 ```
-mini-atlas/
-├── 1-infrastructure/          # Cluster creation
+shoulders/
+├── 1-cluster/                 # Cluster creation
 │   ├── create-cluster.sh      # Kind cluster setup script
 │   └── kind-config.yaml       # Kind configuration
 ├── 2-addons/                  # Platform components
@@ -163,16 +186,16 @@ mini-atlas/
 │   ├── install-addons.sh      # Addon installation script
 │   └── manifests/             # Kubernetes manifests
 │       ├── crossplane/        # Crossplane XRDs and Compositions
+│       ├── gateway/           # Gateway API resources
 │       ├── helm-releases/     # Helm chart deployments
 │       ├── helm-repositories/ # Helm repository configs
-│       ├── namespaces/        # Namespace definitions
-│       └── shared-resources/  # Multi-tenant resources
+│       └── namespaces/        # Namespace definitions
 └── 3-user-space/              # Developer workspace
     └── team-a/                # Example team workspace
         ├── workspace.yaml     # Workspace definition
         ├── webapp.yaml        # Web application
-        ├── infra.yaml         # Infrastructure resources
-        └── kafka-instance.yaml # Messaging topic
+        ├── state-store.yaml   # DB and redis resources
+        └── event-stream.yaml # Messaging topic
 ```
 
 ## Available Abstractions
@@ -187,25 +210,15 @@ mini-atlas/
 - **Creates**: Deployment, Service, Ingress
 - **Schema**: `image`, `tag`, `replicas`, `host`
 
-### Infrastructure
+### StateStore
 - **Purpose**: Database and caching services
 - **Creates**: PostgreSQL cluster, Redis deployment, secrets
 - **Schema**: `database`
 
-### KafkaInstance
+### EventStream
 - **Purpose**: Kafka cluster and messaging topics
 - **Creates**: Kafka cluster, NodePool, and multiple KafkaTopics
 - **Schema**: `topics` array with `name`, `partitions`, `replicas`, and `config`
-
-## Differences from Production Atlas
-
-| Feature | Mini-Atlas | Production Atlas |
-|---------|------------|------------------|
-| Cluster | Kind (local) | AKS (Terraform) |
-| Abstractions | Crossplane | Complex custom operators |
-| Scale | Single cluster | Multi-cluster |
-| Networking | Cilium (basic) | Advanced mesh networking |
-| Security | Basic policies | Enterprise security controls |
 
 ## Contributing
 
@@ -219,7 +232,7 @@ mini-atlas/
 To remove the cluster:
 
 ```bash
-kind delete cluster --name mini-atlas
+kind delete cluster --name shoulders
 ```
 
 ## License

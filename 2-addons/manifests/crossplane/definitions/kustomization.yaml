@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - workspace-xrd.yaml
   - application-xrd.yaml
-  - infrastructure-xrd.yaml
-  - kafka-instance-xrd.yaml
+  - state-store-xrd.yaml
+  - event-stream-xrd.yaml

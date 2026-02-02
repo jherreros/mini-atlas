@@ -3,10 +3,10 @@ kind: Composition
 metadata:
   name: application-composition
   labels:
-    crossplane.io/xrd: webapplications.mini-atlas.io
+    crossplane.io/xrd: webapplications.shoulders.io
 spec:
   compositeTypeRef:
-    apiVersion: mini-atlas.io/v1alpha1
+    apiVersion: shoulders.io/v1alpha1
     kind: WebApplication
   mode: Pipeline
   pipeline:

@@ -1,5 +1,5 @@
-apiVersion: mini-atlas.io/v1alpha1
-kind: KafkaInstance
+apiVersion: shoulders.io/v1alpha1
+kind: EventStream
 metadata:
   name: team-a-01
   namespace: team-a

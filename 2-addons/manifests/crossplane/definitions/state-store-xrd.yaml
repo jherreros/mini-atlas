@@ -1,0 +1,43 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: statestores.shoulders.io
+spec:
+  group: shoulders.io
+  names:
+    kind: StateStore
+    plural: statestores
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                postgresql:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    storage:
+                      type: string
+                      default: 1Gi
+                    databases:
+                      type: array
+                      items:
+                        type: string
+                redis:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    replicas:
+                      type: integer
+                      default: 1

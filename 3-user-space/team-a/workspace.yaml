@@ -1,4 +1,4 @@
-apiVersion: mini-atlas.io/v1alpha1
+apiVersion: shoulders.io/v1alpha1
 kind: Workspace
 metadata:
   name: team-a

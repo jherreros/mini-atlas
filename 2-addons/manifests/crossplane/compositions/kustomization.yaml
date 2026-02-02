@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
   - workspace-composition.yaml
   - application-composition.yaml
-  - infrastructure-composition.yaml
-  - kafka-instance-composition.yaml
+  - state-store-composition.yaml
+  - event-stream-composition.yaml
