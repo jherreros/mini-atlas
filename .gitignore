@@ -1,0 +1,31 @@
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build/test
+*.test
+*.out
+coverage.txt
+
+# Go work
+/go.work
+/go.work.sum
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# CLI output
+/shoulders-cli/shoulders
+/shoulders-cli/dist/
+/shoulders-cli/bin/
+
+# Logs
+*.log

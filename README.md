@@ -62,6 +62,9 @@ Then, open [http://localhost:3000](http://localhost:3000) in your browser. The d
 
 ## Quick Start
 
+
+#### Option A (scripts)
+
 ### Prerequisites
 
 - Docker
@@ -85,6 +88,15 @@ This will:
 - Install Cilium CNI with kube-proxy replacement.
 - Bootstrap FluxCD.
 - Deploy all platform components via GitOps.
+
+
+#### Option B (CLI, single command):
+
+```bash
+cd shoulders-cli
+go build -o shoulders
+./shoulders up
+```
 
 ### 3. Verify Installation
 
