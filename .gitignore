@@ -23,7 +23,7 @@ coverage.txt
 .DS_Store
 
 # CLI output
-/shoulders-cli/shoulders
+/shoulders-cli/shoulders*
 /shoulders-cli/dist/
 /shoulders-cli/bin/
 

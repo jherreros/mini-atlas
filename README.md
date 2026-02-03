@@ -55,33 +55,27 @@ Shoulders comes with a pre-configured observability stack to help developers mon
 You can access the Grafana dashboard to view logs, metrics, and traces by port-forwarding to the Grafana service:
 
 ```bash
-kubectl port-forward svc/kube-prometheus-stack-grafana -n observability 3000:80
+shoulders dashboard
 ```
 
-Then, open [http://localhost:3000](http://localhost:3000) in your browser. The default credentials are `admin` / `prom-operator`.
+Then, open [http://localhost:3000](http://localhost:3000) in your browser. The password for the `admin` user is stored in the Kubernetes secret and can be retrieved with:
+
+```bash
+kubectl get secret --namespace observability kube-prometheus-stack-grafana -o yaml | yq .data.admin-password | base64 -d
+```
 
 ## Quick Start
 
-
-#### Option A (scripts)
-
-### Prerequisites
-
-- Docker
-- kubectl
-- Helm (v3+)
-- kind
-
-### 1. Create the Cluster
+### Install the tool
 
 ```bash
-./1-cluster/create-cluster.sh
+curl -fsSL https://raw.githubusercontent.com/jherreros/shoulders/main/scripts/install.sh | bash
 ```
 
-### 2. Install Platform Addons
+### Deploy shoulders
 
 ```bash
-./2-addons/install-addons.sh
+shoulders up
 ```
 
 This will:
@@ -89,26 +83,10 @@ This will:
 - Bootstrap FluxCD.
 - Deploy all platform components via GitOps.
 
-
-#### Option B (CLI, single command):
-
-```bash
-cd shoulders-cli
-go build -o shoulders
-./shoulders up
-```
-
-### 3. Verify Installation
+### Verify Installation
 
 ```bash
-# Check cluster status
-kubectl get nodes
-
-# Check FluxCD status
-flux get kustomizations
-
-# Check platform components
-kubectl get pods -A
+shoulders status
 ```
 
 ## Using Shoulders
@@ -244,7 +222,7 @@ shoulders/
 To remove the cluster:
 
 ```bash
-kind delete cluster --name shoulders
+shoulders down
 ```
 
 ## License

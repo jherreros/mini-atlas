@@ -27,6 +27,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60.3
+          version: v1.65.0
           working-directory: shoulders-cli
           args: --timeout=5m

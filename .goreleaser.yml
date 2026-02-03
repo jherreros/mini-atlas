@@ -4,7 +4,7 @@ project_name: shoulders
 
 before:
   hooks:
-    - go mod tidy
+    - cd shoulders-cli && go mod tidy
 
 builds:
   - main: ./shoulders-cli
