@@ -1,6 +1,10 @@
 run:
   timeout: 5m
 
+# This is mandatory for new versions of golangci-lint
+# See https://golangci-lint.run/usage/configuration/#config-file-versions
+version: 2
+
 linters:
   enable:
     - govet

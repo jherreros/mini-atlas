@@ -4,10 +4,10 @@ project_name: shoulders
 
 before:
   hooks:
-    - cd shoulders-cli && go mod tidy
+    - sh -c "cd shoulders-cli && go mod tidy"
 
 builds:
-  - main: ./shoulders-cli
+  - dir: shoulders-cli
     binary: shoulders
     env:
       - CGO_ENABLED=0
@@ -21,11 +21,11 @@ builds:
     mod_timestamp: '{{ .CommitTimestamp }}'
 
 archives:
-  - format: tar.gz
+  - formats: ['tar.gz']
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ['zip']
 
 checksum:
   name_template: 'checksums.txt'
