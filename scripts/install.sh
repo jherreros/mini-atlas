@@ -18,14 +18,25 @@ if [[ "$OS" != "darwin" && "$OS" != "linux" ]]; then
 fi
 
 VERSION=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep -o '"tag_name": "v[^"]*"' | cut -d'"' -f4)
-TARBALL="shoulders_${VERSION}_${OS}_${ARCH}.tar.gz"
+if [ -z "$VERSION" ]; then
+  echo "Failed to fetch latest version"
+  exit 1
+fi
+
+# Remove 'v' prefix for the binary filename
+BINARY_VERSION=${VERSION#v}
+TARBALL="shoulders_${BINARY_VERSION}_${OS}_${ARCH}.tar.gz"
 URL="https://github.com/${REPO}/releases/download/${VERSION}/${TARBALL}"
 
 TMP_DIR=$(mktemp -d)
 cleanup() { rm -rf "$TMP_DIR"; }
 trap cleanup EXIT
 
-curl -L "$URL" | tar -xz -C "$TMP_DIR"
+echo "Downloading $URL..."
+if ! curl -fsSL "$URL" | tar -xz -C "$TMP_DIR"; then
+  echo "Failed to download or extract archive"
+  exit 1
+fi
 
 if [[ ! -f "$TMP_DIR/shoulders" ]]; then
   echo "Binary not found in archive"
