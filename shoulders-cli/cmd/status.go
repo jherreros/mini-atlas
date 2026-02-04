@@ -3,21 +3,28 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jherreros/shoulders/shoulders-cli/internal/crossplane"
 	"github.com/jherreros/shoulders/shoulders-cli/internal/flux"
 	"github.com/jherreros/shoulders/shoulders-cli/internal/kube"
 	"github.com/jherreros/shoulders/shoulders-cli/internal/output"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type statusSummary struct {
+	K8sVersion   string   `json:"k8sVersion" yaml:"k8sVersion"`
 	NodesReady   bool     `json:"nodesReady" yaml:"nodesReady"`
+	NodeCount    int      `json:"nodeCount" yaml:"nodeCount"`
 	FluxReady    bool     `json:"fluxReady" yaml:"fluxReady"`
-	FluxPending  []string `json:"fluxPending" yaml:"fluxPending"`
-	ProvidersOK  bool     `json:"providersHealthy" yaml:"providersHealthy"`
-	ProvidersBad []string `json:"providersUnhealthy" yaml:"providersUnhealthy"`
+	FluxBroken   []string `json:"fluxBroken" yaml:"fluxBroken"`
+	XPlaneReady  bool     `json:"crossplaneReady" yaml:"crossplaneReady"`
+	XPlaneBroken []string `json:"crossplaneBroken" yaml:"crossplaneBroken"`
+	GatewayReady bool     `json:"gatewayReady" yaml:"gatewayReady"`
+	GatewayAddr  string   `json:"gatewayAddress" yaml:"gatewayAddress"`
 }
 
 var statusCmd = &cobra.Command{
@@ -39,49 +46,75 @@ var statusCmd = &cobra.Command{
 			return err
 		}
 
-		nodesReady := true
+		// 1. Cluster Info
+		versionInfo, err := clientset.Discovery().ServerVersion()
+		k8sVersion := "unknown"
+		if err == nil {
+			k8sVersion = versionInfo.GitVersion
+		}
+
+		// 2. Nodes
 		nodes, err := clientset.CoreV1().Nodes().List(ctx, v1.ListOptions{})
 		if err != nil {
 			return err
 		}
+		nodesReady := true
 		for _, node := range nodes.Items {
-			ready := false
-			for _, cond := range node.Status.Conditions {
-				if cond.Type == "Ready" && cond.Status == "True" {
-					ready = true
-				}
-			}
-			if !ready {
+			if !isNodeReady(node) {
 				nodesReady = false
 			}
 		}
 
-		fluxReady, pending, err := flux.AllKustomizationsReady(ctx, dynamicClient, "flux-system")
+		// 3. Flux
+		fluxReady, fluxPending, err := flux.AllKustomizationsReady(ctx, dynamicClient, "flux-system")
 		if err != nil {
-			return err
+			// Don't fail completely if CRDs are missing, just report not ready
+			fluxReady = false
+			fluxPending = []string{err.Error()}
 		}
-		providersOK, unhealthy, err := crossplane.AllProvidersHealthy(ctx, dynamicClient)
+
+		// 4. Crossplane
+		xpReady, xpUnhealthy, err := crossplane.AllProvidersHealthy(ctx, dynamicClient)
 		if err != nil {
-			return err
+			xpReady = false
+			xpUnhealthy = []string{err.Error()}
+		}
+
+		// 5. Gateway
+		gwReady := false
+		gwAddr := "Pending"
+		gvrGW := schema.GroupVersionResource{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gateways"}
+		gwList, err := dynamicClient.Resource(gvrGW).Namespace("gateway").List(ctx, v1.ListOptions{})
+		if err == nil && len(gwList.Items) > 0 {
+			// Check the first gateway found (usually 'main')
+			gw := gwList.Items[0]
+			gwReady = true // Simplified check
+
+			// Try to find address in status
+			if status, ok := gw.Object["status"].(map[string]interface{}); ok {
+				if addrs, ok := status["addresses"].([]interface{}); ok && len(addrs) > 0 {
+					if addrMap, ok := addrs[0].(map[string]interface{}); ok {
+						gwAddr = fmt.Sprintf("%v", addrMap["value"])
+					}
+				}
+			}
 		}
 
 		summary := statusSummary{
+			K8sVersion:   k8sVersion,
 			NodesReady:   nodesReady,
+			NodeCount:    len(nodes.Items),
 			FluxReady:    fluxReady,
-			FluxPending:  pending,
-			ProvidersOK:  providersOK,
-			ProvidersBad: unhealthy,
+			FluxBroken:   fluxPending,
+			XPlaneReady:  xpReady,
+			XPlaneBroken: xpUnhealthy,
+			GatewayReady: gwReady,
+			GatewayAddr:  gwAddr,
 		}
 
 		if format == output.Table {
-			rows := [][]string{
-				{"Nodes Ready", fmt.Sprintf("%t", summary.NodesReady)},
-				{"Flux Ready", fmt.Sprintf("%t", summary.FluxReady)},
-				{"Flux Pending", fmt.Sprintf("%v", summary.FluxPending)},
-				{"Crossplane Providers Healthy", fmt.Sprintf("%t", summary.ProvidersOK)},
-				{"Unhealthy Providers", fmt.Sprintf("%v", summary.ProvidersBad)},
-			}
-			return output.PrintTable([]string{"Check", "Result"}, rows)
+			printStatusTable(summary)
+			return nil
 		}
 
 		payload, err := output.Render(summary, format)
@@ -91,4 +124,42 @@ var statusCmd = &cobra.Command{
 		fmt.Println(string(payload))
 		return nil
 	},
+}
+
+func isNodeReady(node corev1.Node) bool {
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == corev1.NodeReady && cond.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
+func printStatusTable(s statusSummary) {
+	fmt.Println("CLUSTER")
+	fmt.Printf("  Version: %s\n", s.K8sVersion)
+	fmt.Printf("  Nodes:   %d (All Ready: %t)\n", s.NodeCount, s.NodesReady)
+	fmt.Println()
+
+	fmt.Println("PLATFORM")
+	fmt.Printf("  Flux CD:    %s\n", formatStatus(s.FluxReady, s.FluxBroken))
+	fmt.Printf("  Crossplane: %s\n", formatStatus(s.XPlaneReady, s.XPlaneBroken))
+	fmt.Printf("  Gateway:    %s (%s)\n", boolToText(s.GatewayReady), s.GatewayAddr)
+}
+
+func formatStatus(ready bool, issues []string) string {
+	if ready {
+		return "Healthy"
+	}
+	if len(issues) > 0 {
+		return fmt.Sprintf("Unhealthy (%s)", strings.Join(issues, ", "))
+	}
+	return "Unhealthy"
+}
+
+func boolToText(b bool) string {
+	if b {
+		return "Ready"
+	}
+	return "Not Ready"
 }

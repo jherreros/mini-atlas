@@ -3,6 +3,7 @@ package crossplane
 import (
 	"context"
 
+	"github.com/jherreros/shoulders/shoulders-cli/internal/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,7 +31,7 @@ func AllProvidersHealthy(ctx context.Context, client dynamic.Interface) (bool, [
 	}
 	var unhealthy []string
 	for _, provider := range providers {
-		ready, _ := hasCondition(provider, "Healthy", "True")
+		ready, _ := kube.HasCondition(provider, "Healthy", "True")
 		if !ready {
 			unhealthy = append(unhealthy, provider.GetName())
 		}
@@ -40,25 +41,4 @@ func AllProvidersHealthy(ctx context.Context, client dynamic.Interface) (bool, [
 
 func listOptions() metav1.ListOptions {
 	return metav1.ListOptions{}
-}
-
-func hasCondition(obj unstructured.Unstructured, conditionType, expectedStatus string) (bool, error) {
-	status, ok := obj.Object["status"].(map[string]interface{})
-	if !ok {
-		return false, nil
-	}
-	conditions, ok := status["conditions"].([]interface{})
-	if !ok {
-		return false, nil
-	}
-	for _, cond := range conditions {
-		condition, ok := cond.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if condition["type"] == conditionType && condition["status"] == expectedStatus {
-			return true, nil
-		}
-	}
-	return false, nil
 }

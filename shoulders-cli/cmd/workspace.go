@@ -113,8 +113,42 @@ var workspaceListCmd = &cobra.Command{
 	},
 }
 
+var workspaceDeleteCmd = &cobra.Command{
+	Use:   "delete <name>",
+	Short: "Delete a Workspace",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		dynamicClient, err := kube.NewDynamicClient(kubeconfig)
+		if err != nil {
+			return err
+		}
+		gvr := schema.GroupVersionResource{Group: v1alpha1.Group, Version: v1alpha1.Version, Resource: "workspaces"}
+		if err := dynamicClient.Resource(gvr).Delete(context.Background(), name, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+		fmt.Printf("Workspace %s deleted\n", name)
+		return nil
+	},
+}
+
+var workspaceCurrentCmd = &cobra.Command{
+	Use:   "current",
+	Short: "Show the current workspace",
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if currentConfig.CurrentWorkspace == "" {
+			fmt.Println("No workspace selected")
+		} else {
+			fmt.Println(currentConfig.CurrentWorkspace)
+		}
+	},
+}
+
 func init() {
 	workspaceCmd.AddCommand(workspaceCreateCmd)
 	workspaceCmd.AddCommand(workspaceUseCmd)
 	workspaceCmd.AddCommand(workspaceListCmd)
+	workspaceCmd.AddCommand(workspaceDeleteCmd)
+	workspaceCmd.AddCommand(workspaceCurrentCmd)
 }
