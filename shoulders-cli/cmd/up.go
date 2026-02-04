@@ -14,6 +14,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var upClusterName string
+
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Create the local cluster and install platform addons",
@@ -24,7 +26,7 @@ var upCmd = &cobra.Command{
 		}
 
 		configPath := filepath.Join(repoRoot, "1-cluster", "kind-config.yaml")
-		if err := bootstrap.EnsureKindCluster(bootstrap.DefaultClusterName, configPath); err != nil {
+		if err := bootstrap.EnsureKindCluster(upClusterName, configPath); err != nil {
 			return fmt.Errorf("failed to create kind cluster: %w", err)
 		}
 		if err := bootstrap.EnsureCilium(kubeconfig); err != nil {
@@ -73,4 +75,8 @@ func waitForFlux(spinner *pterm.SpinnerPrinter) error {
 			return fmt.Errorf("timed out waiting for Flux Kustomizations")
 		}
 	}
+}
+
+func init() {
+	upCmd.Flags().StringVar(&upClusterName, "name", bootstrap.DefaultClusterName, "Name of the kind cluster")
 }

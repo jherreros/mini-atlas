@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jherreros/shoulders/shoulders-cli/internal/kube"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,7 +38,7 @@ func AllKustomizationsReady(ctx context.Context, client dynamic.Interface, names
 	var notReady []string
 	for _, item := range items {
 		name := item.GetName()
-		ready, _ := hasCondition(item, "Ready", "True")
+		ready, _ := kube.HasCondition(item, "Ready", "True")
 		if !ready {
 			notReady = append(notReady, name)
 		}
@@ -47,27 +48,6 @@ func AllKustomizationsReady(ctx context.Context, client dynamic.Interface, names
 
 func listOptions() metav1.ListOptions {
 	return metav1.ListOptions{}
-}
-
-func hasCondition(obj unstructured.Unstructured, conditionType, expectedStatus string) (bool, error) {
-	status, ok := obj.Object["status"].(map[string]interface{})
-	if !ok {
-		return false, nil
-	}
-	conditions, ok := status["conditions"].([]interface{})
-	if !ok {
-		return false, nil
-	}
-	for _, cond := range conditions {
-		condition, ok := cond.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		if condition["type"] == conditionType && condition["status"] == expectedStatus {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func KustomizationStatusSummary(ctx context.Context, client dynamic.Interface, namespace string) (string, error) {

@@ -39,6 +39,14 @@ func DeleteKindCluster(name string) error {
 	return provider.Delete(name, "")
 }
 
+func ListClusters() ([]string, error) {
+	provider, err := newProvider()
+	if err != nil {
+		return nil, err
+	}
+	return provider.List()
+}
+
 func newProvider() (*cluster.Provider, error) {
 	opt, err := cluster.DetectNodeProvider()
 	if err != nil {
